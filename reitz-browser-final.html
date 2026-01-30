@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1.0">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-title" content="Reitz">
+    <title>Reitz Browser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            max-width: 100vw;
+            max-height: 100vh;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #FFE66D 0%, #FF6B6B 100%);
+            --secondary-gradient: linear-gradient(135deg, #FFF4A3 0%, #FF8E8E 100%);
+            --dark-bg: #1a1a2e;
+            --darker-bg: #0f0f1e;
+            --text-light: #ffffff;
+            --safe-area-top: env(safe-area-inset-top, 0px);
+            --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--darker-bg);
+            color: var(--text-light);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: linear-gradient(45deg, #1a1a2e, #16213e, #0f3460, #1a1a2e);
+            background-size: 400% 400%;
+            animation: gradientShift 25s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Animated Grid */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-image: 
+                linear-gradient(rgba(255, 230, 109, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 230, 109, 0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridShift 30s linear infinite;
+        }
+
+        @keyframes gridShift {
+            0% { background-position: 0 0; }
+            100% { background-position: 60px 60px; }
+        }
+
+        /* Floating Particles */
+        .particle {
+            position: fixed;
+            width: 3px;
+            height: 3px;
+            background: radial-gradient(circle, #FFE66D, #FF6B6B);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float 30s infinite;
+            opacity: 0.3;
+            z-index: -1;
+            box-shadow: 0 0 10px rgba(255, 230, 109, 0.5);
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); }
+            25% { transform: translateY(-200px) translateX(100px) rotate(90deg); }
+            50% { transform: translateY(-300px) translateX(-100px) rotate(180deg); }
+            75% { transform: translateY(-150px) translateX(150px) rotate(270deg); }
+        }
+
+        /* Main Container */
+        .browser-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            gap: 0;
+            padding: 0;
+            position: relative;
+            padding-top: var(--safe-area-top);
+            padding-bottom: var(--safe-area-bottom);
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(26, 26, 46, 0.98);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 230, 109, 0.1);
+            flex-shrink: 0;
+            min-height: 48px;
+            gap: 8px;
+        }
+
+        .browser-title {
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 16px;
+            letter-spacing: 3px;
+            flex: 1;
+        }
+
+        .top-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 230, 109, 0.1);
+            color: #FFE66D;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .icon-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 230, 109, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .icon-btn:active::before {
+            width: 100px;
+            height: 100px;
+        }
+
+        .icon-btn:active {
+            background: rgba(255, 230, 109, 0.2);
+            transform: scale(0.95);
+        }
+
+        /* Address Bar */
+        .address-bar-wrapper {
+            padding: 8px 12px;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 230, 109, 0.1);
+            flex-shrink: 0;
+        }
+
+        .address-bar {
+            display: flex;
+            align-items: center;
+            background: rgba(15, 15, 30, 0.95);
+            border-radius: 12px;
+            padding: 0 12px;
+            border: 2px solid rgba(255, 230, 109, 0.15);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 44px;
+            gap: 8px;
+        }
+
+        .address-bar:focus-within {
+            border-color: #FFE66D;
+            box-shadow: 0 0 20px rgba(255, 230, 109, 0.3);
+            background: rgba(15, 15, 30, 0.98);
+        }
+
+        .security-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+            color: #4ECDC4;
+        }
+
+        .url-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-light);
+            font-size: 15px;
+            padding: 0;
+            min-width: 50px;
+        }
+
+        .url-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .clear-btn {
+            background: rgba(255, 107, 107, 0.2);
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: #FF6B6B;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .url-input:not(:placeholder-shown) ~ .clear-btn {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .clear-btn:active {
+            background: #FF6B6B;
+            color: white;
+            transform: scale(0.9);
+        }
+
+        /* Tabs Container */
+        .tabs-container {
+            display: flex;
+            gap: 6px;
+            padding: 6px 8px;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 230, 109, 0.1);
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #FFE66D rgba(26, 26, 46, 0.5);
+            flex-shrink: 0;
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+
+        .tabs-container::-webkit-scrollbar {
+            height: 4px;
+        }
+
+        .tabs-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .tabs-container::-webkit-scrollbar-thumb {
+            background: var(--primary-gradient);
+            border-radius: 2px;
+        }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(15, 15, 30, 0.7);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 110px;
+            max-width: 160px;
+            border: 1px solid transparent;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        .tab.active {
+            background: var(--primary-gradient);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 15px rgba(255, 230, 109, 0.3);
+        }
+
+        .tab:active:not(.active) {
+            background: rgba(255, 230, 109, 0.15);
+        }
+
+        .tab-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .tab-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .tab-close {
+            background: rgba(255, 107, 107, 0.3);
+            border: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .tab-close:active {
+            background: #FF6B6B;
+            transform: rotate(90deg);
+        }
+
+        .new-tab-btn {
+            padding: 6px 10px;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            width: 40px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(255, 107, 107, 0.2);
+        }
+
+        .new-tab-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.4);
+        }
+
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 230, 109, 0.1);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .browser-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* Home Page */
+        .home-page {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100%;
+            width: 100%;
+            padding: 20px;
+            padding-top: 40px;
+            background: linear-gradient(135deg, rgba(26, 26, 46, 0.95), rgba(15, 15, 30, 0.95));
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .home-logo {
+            font-size: clamp(48px, 15vw, 72px);
+            font-weight: 900;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            animation: pulse 2.5s ease-in-out infinite;
+            letter-spacing: 4px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .home-search {
+            width: 100%;
+            max-width: 550px;
+            margin-bottom: 35px;
+        }
+
+        .home-search-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(15, 15, 30, 0.95);
+            border: 2px solid rgba(255, 230, 109, 0.25);
+            border-radius: 14px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .home-search-input:focus {
+            border-color: #FFE66D;
+            box-shadow: 0 0 25px rgba(255, 230, 109, 0.3);
+        }
+
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(clamp(90px, 22vw, 130px), 1fr));
+            gap: clamp(12px, 3vw, 18px);
+            width: 100%;
+            max-width: 550px;
+        }
+
+        .quick-link {
+            padding: 18px 12px;
+            background: rgba(15, 15, 30, 0.7);
+            border: 1px solid rgba(255, 230, 109, 0.2);
+            border-radius: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-link::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 230, 109, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .quick-link:active::before {
+            width: 150px;
+            height: 150px;
+        }
+
+        .quick-link:active {
+            background: var(--primary-gradient);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(255, 107, 107, 0.3);
+        }
+
+        .quick-link-icon {
+            font-size: clamp(28px, 8vw, 40px);
+            position: relative;
+            z-index: 1;
+        }
+
+        .quick-link-title {
+            font-size: clamp(12px, 3vw, 14px);
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            right: -100%;
+            top: 0;
+            width: min(90vw, 380px);
+            height: 100vh;
+            background: rgba(26, 26, 46, 0.99);
+            backdrop-filter: blur(25px);
+            border-left: 1px solid rgba(255, 230, 109, 0.2);
+            transition: right 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+            padding-top: calc(20px + var(--safe-area-top));
+            padding-bottom: calc(20px + var(--safe-area-bottom));
+        }
+
+        .sidebar.active {
+            right: 0;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 230, 109, 0.2);
+        }
+
+        .sidebar-title {
+            font-size: 20px;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sidebar-close {
+            background: rgba(255, 107, 107, 0.3);
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            color: white;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-close:active {
+            background: #FF6B6B;
+            transform: rotate(90deg);
+        }
+
+        .sidebar-section {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #FFE66D;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(15, 15, 30, 0.6);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sidebar-item:active {
+            background: var(--primary-gradient);
+            transform: translateX(-3px);
+        }
+
+        /* Loading Bar */
+        .loading-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--primary-gradient);
+            width: 0%;
+            transition: width 0.3s ease;
+            z-index: 10;
+        }
+
+        .loading-bar.active {
+            animation: loading 2s ease-in-out infinite;
+        }
+
+        @keyframes loading {
+            0% { width: 0%; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        /* Search Results */
+        .search-results {
+            padding: 15px;
+            max-width: 100%;
+            width: 100%;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .search-result {
+            background: rgba(15, 15, 30, 0.6);
+            border: 1px solid rgba(255, 230, 109, 0.2);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .search-result::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 230, 109, 0.1);
+            transition: left 0.3s ease;
+        }
+
+        .search-result:active::before {
+            left: 0;
+        }
+
+        .result-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #FFE66D;
+            margin-bottom: 6px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .result-url {
+            font-size: 12px;
+            color: #4ECDC4;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .result-snippet {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            padding: 0;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .setting-group {
+            margin-bottom: 20px;
+        }
+
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #FFE66D;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .setting-input {
+            width: 100%;
+            padding: 12px;
+            background: rgba(15, 15, 30, 0.8);
+            border: 1px solid rgba(255, 230, 109, 0.3);
+            border-radius: 8px;
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .setting-input:focus {
+            border-color: #FFE66D;
+            box-shadow: 0 0 15px rgba(255, 230, 109, 0.3);
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .save-btn:active {
+            transform: scale(0.98);
+            box-shadow: 0 0 20px rgba(255, 230, 109, 0.4);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 12px;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(15px);
+            border-top: 1px solid rgba(255, 230, 109, 0.1);
+            font-size: 11px;
+            flex-shrink: 0;
+            min-height: 32px;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .status-indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4ECDC4;
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.4s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .top-bar {
+                min-height: 44px;
+                padding: 8px 10px;
+            }
+
+            .browser-title {
+                font-size: 14px;
+                letter-spacing: 2px;
+            }
+
+            .icon-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 16px;
+            }
+
+            .address-bar {
+                height: 40px;
+                padding: 0 10px;
+            }
+
+            .url-input {
+                font-size: 14px;
+            }
+
+            .tab {
+                min-width: 100px;
+                max-width: 140px;
+                padding: 5px 10px;
+                font-size: 11px;
+            }
+
+            .home-logo {
+                margin-bottom: 25px;
+            }
+
+            .home-search {
+                margin-bottom: 25px;
+            }
+
+            .home-search-input {
+                padding: 12px 16px;
+                font-size: 15px;
+            }
+
+            .quick-links {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .quick-link {
+                padding: 16px 10px;
+            }
+
+            .status-bar {
+                min-height: 28px;
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .browser-title {
+                font-size: 13px;
+                letter-spacing: 1.5px;
+            }
+
+            .icon-btn {
+                width: 34px;
+                height: 34px;
+                font-size: 15px;
+            }
+
+            .tab {
+                min-width: 80px;
+                padding: 4px 8px;
+            }
+
+            .home-logo {
+                font-size: 42px;
+                margin-bottom: 20px;
+            }
+
+            .quick-link-icon {
+                font-size: 28px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .home-page {
+                padding-top: 60px;
+            }
+
+            .home-logo {
+                margin-bottom: 40px;
+            }
+
+            .quick-links {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+        }
+
+        @media (max-height: 600px) {
+            .top-bar {
+                min-height: 40px;
+            }
+
+            .address-bar-wrapper {
+                padding: 6px 10px;
+            }
+
+            .address-bar {
+                height: 38px;
+            }
+
+            .tabs-container {
+                padding: 4px 6px;
+            }
+
+            .home-page {
+                padding-top: 30px;
+                padding: 15px;
+            }
+
+            .home-logo {
+                font-size: 40px;
+                margin-bottom: 15px;
+            }
+
+            .home-search {
+                margin-bottom: 15px;
+            }
+
+            .quick-links {
+                gap: 8px;
+            }
+        }
+
+        /* Touch-friendly */
+        @media (hover: none) {
+            .icon-btn, .tab, .quick-link, .new-tab-btn {
+                min-height: 44px;
+                min-width: 44px;
+            }
+        }
+
+        /* Prevent layout shift */
+        input, select, button {
+            font-family: inherit;
+            font-size: inherit;
+        }
+
+        /* Smooth scrolling */
+        * {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="animated-bg"></div>
+    <div class="grid-bg"></div>
+
+    <!-- Floating Particles -->
+    <script>
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 30 + 's';
+            particle.style.animationDuration = (20 + Math.random() * 15) + 's';
+            document.body.appendChild(particle);
+        }
+    </script>
+
+    <!-- Main Browser Container -->
+    <div class="browser-container">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="browser-title">⚡REITZ</div>
+            <div class="top-actions">
+                <button class="icon-btn" onclick="toggleBookmarks()" title="Bookmarks">★</button>
+                <button class="icon-btn" onclick="toggleSettings()" title="Settings">⚙</button>
+            </div>
+        </div>
+
+        <!-- Address Bar -->
+        <div class="address-bar-wrapper">
+            <div class="address-bar">
+                <span class="security-icon" id="securityIcon">🔒</span>
+                <input type="text" class="url-input" id="urlInput" placeholder="Search or type URL..." onkeypress="handleEnter(event)">
+                <button class="clear-btn" onclick="clearInput()">✕</button>
+            </div>
+        </div>
+
+        <!-- Tabs Container -->
+        <div class="tabs-container" id="tabsContainer">
+            <div class="tab active" data-tab-id="1">
+                <span class="tab-icon">🏠</span>
+                <span class="tab-title">Home</span>
+                <button class="tab-close" onclick="closeTab(event, 1)">×</button>
+            </div>
+            <button class="new-tab-btn" onclick="createNewTab()">+</button>
+        </div>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <div class="loading-bar" id="loadingBar"></div>
+            
+            <!-- Home Page -->
+            <div class="home-page" id="homePage">
+                <div class="home-logo">REITZ</div>
+                <div class="home-search">
+                    <input type="text" class="home-search-input" id="homeSearchInput" placeholder="Search the web..." onkeypress="handleHomeSearch(event)">
+                </div>
+                <div class="quick-links">
+                    <div class="quick-link" onclick="quickNavigate('https://www.google.com')">
+                        <div class="quick-link-icon">🔍</div>
+                        <div class="quick-link-title">Google</div>
+                    </div>
+                    <div class="quick-link" onclick="quickNavigate('https://www.youtube.com')">
+                        <div class="quick-link-icon">📺</div>
+                        <div class="quick-link-title">YouTube</div>
+                    </div>
+                    <div class="quick-link" onclick="quickNavigate('https://www.github.com')">
+                        <div class="quick-link-icon">💻</div>
+                        <div class="quick-link-title">GitHub</div>
+                    </div>
+                    <div class="quick-link" onclick="quickNavigate('https://www.reddit.com')">
+                        <div class="quick-link-icon">🔗</div>
+                        <div class="quick-link-title">Reddit</div>
+                    </div>
+                    <div class="quick-link" onclick="quickNavigate('https://www.twitter.com')">
+                        <div class="quick-link-icon">🐦</div>
+                        <div class="quick-link-title">Twitter</div>
+                    </div>
+                    <div class="quick-link" onclick="quickNavigate('https://www.wikipedia.org')">
+                        <div class="quick-link-icon">📖</div>
+                        <div class="quick-link-title">Wikipedia</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Browser Frame -->
+            <iframe class="browser-frame hidden" id="browserFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+
+            <!-- Search Results Container -->
+            <div class="search-results hidden" id="searchResults"></div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-indicator"></span>
+                <span id="statusText">Ready</span>
+            </div>
+            <div class="status-item">
+                <span id="connectionStatus">🌐 Online</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title" id="sidebarTitle">Menu</div>
+            <button class="sidebar-close" onclick="closeSidebar()">×</button>
+        </div>
+        <div id="sidebarContent"></div>
+    </div>
+
+    <script>
+        // Browser State
+        let currentTabId = 1;
+        let tabCounter = 1;
+        let tabs = {
+            1: { url: '', title: 'Home', history: [], historyIndex: -1 }
+        };
+        let bookmarks = JSON.parse(localStorage.getItem('reitz_bookmarks')) || [];
+        let history = JSON.parse(localStorage.getItem('reitz_history')) || [];
+        let settings = JSON.parse(localStorage.getItem('reitz_settings')) || {
+            searchEngine: 'google',
+            homepage: 'about:home',
+            apiKey: '',
+            searchEngineId: ''
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSettings();
+            updateStatus('Ready');
+            
+            // Prevent zoom on iOS
+            document.addEventListener('touchmove', function(e) {
+                if (e.touches.length > 1) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
+
+            // Prevent double-tap zoom
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                let now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+        });
+
+        // Smart URL/Search Detection
+        function isValidUrl(string) {
+            try {
+                // Check if it looks like a URL
+                if (string.includes('://') || string.includes('.') && !string.includes(' ')) {
+                    const url = new URL(string.startsWith('http') ? string : 'https://' + string);
+                    return true;
+                }
+                return false;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function performSearch() {
+            const input = document.getElementById('urlInput').value.trim();
+            
+            if (!input) return;
+
+            if (isValidUrl(input)) {
+                // It's a URL
+                let url = input;
+                if (!url.startsWith('http')) {
+                    url = 'https://' + url;
+                }
+                loadUrl(url);
+            } else {
+                // It's a search query
+                searchWeb(input);
+            }
+        }
+
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                performSearch();
+            }
+        }
+
+        function handleHomeSearch(event) {
+            if (event.key === 'Enter') {
+                const query = document.getElementById('homeSearchInput').value;
+                document.getElementById('urlInput').value = query;
+                performSearch();
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('urlInput').value = '';
+            document.getElementById('urlInput').focus();
+        }
+
+        function loadUrl(url, addToHistory = true) {
+            if (!url.startsWith('http')) {
+                url = 'https://' + url;
+            }
+
+            const tab = tabs[currentTabId];
+            tab.url = url;
+
+            if (addToHistory) {
+                tab.history = tab.history.slice(0, tab.historyIndex + 1);
+                tab.history.push(url);
+                tab.historyIndex++;
+            }
+
+            addToGlobalHistory(url);
+            showLoading();
+
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('searchResults').classList.add('hidden');
+
+            const frame = document.getElementById('browserFrame');
+            frame.classList.remove('hidden');
+            frame.src = url;
+
+            document.getElementById('urlInput').value = url;
+            updateTabTitle(currentTabId, url);
+            updateStatus('Loading ' + new URL(url).hostname);
+
+            setTimeout(() => {
+                hideLoading();
+                updateStatus('Page loaded');
+            }, 2000);
+        }
+
+        function searchWeb(query) {
+            updateStatus('Searching: ' + query);
+            showLoading();
+
+            document.getElementById('homePage').classList.add('hidden');
+            document.getElementById('browserFrame').classList.add('hidden');
+
+            if (settings.apiKey && settings.searchEngineId) {
+                performGoogleSearch(query);
+            } else {
+                // Direct Google search
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                loadUrl(searchUrl);
+            }
+        }
+
+        async function performGoogleSearch(query) {
+            const apiKey = settings.apiKey;
+            const cx = settings.searchEngineId;
+            const url = `https://www.googleapis.com/customsearch/v1?key=${apiKey}&cx=${cx}&q=${encodeURIComponent(query)}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                hideLoading();
+
+                if (data.items && data.items.length > 0) {
+                    displaySearchResults(data.items, query);
+                } else {
+                    displayNoResults(query);
+                }
+            } catch (error) {
+                hideLoading();
+                const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                loadUrl(searchUrl);
+            }
+        }
+
+        function displaySearchResults(results, query) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = `<div style="color: #FFE66D; margin-bottom: 15px; font-weight: 600; font-size: 14px;">Results for "${query}"</div>`;
+
+            results.forEach(result => {
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'search-result fade-in';
+                resultDiv.onclick = () => loadUrl(result.link);
+
+                resultDiv.innerHTML = `
+                    <div class="result-title">${result.htmlTitle || result.title}</div>
+                    <div class="result-url">${result.displayLink || result.link}</div>
+                    <div class="result-snippet">${result.htmlSnippet || result.snippet}</div>
+                `;
+
+                container.appendChild(resultDiv);
+            });
+
+            container.classList.remove('hidden');
+            updateStatus(`Found ${results.length} results`);
+        }
+
+        function displayNoResults(query) {
+            const container = document.getElementById('searchResults');
+            container.innerHTML = `
+                <div style="text-align: center; padding: 30px; color: rgba(255, 255, 255, 0.7);">
+                    <h2 style="color: #FFE66D; margin-bottom: 15px; font-size: 18px;">No results found</h2>
+                    <p style="font-size: 14px;">Try different keywords or check your spelling</p>
+                </div>
+            `;
+            container.classList.remove('hidden');
+        }
+
+        function quickNavigate(url) {
+            document.getElementById('urlInput').value = url;
+            loadUrl(url);
+        }
+
+        // Tab Management
+        function createNewTab() {
+            tabCounter++;
+            const newTabId = tabCounter;
+
+            tabs[newTabId] = {
+                url: '',
+                title: 'Home',
+                history: [],
+                historyIndex: -1
+            };
+
+            const tabsContainer = document.getElementById('tabsContainer');
+            const newTabBtn = tabsContainer.querySelector('.new-tab-btn');
+
+            const tabDiv = document.createElement('div');
+            tabDiv.className = 'tab fade-in';
+            tabDiv.setAttribute('data-tab-id', newTabId);
+            tabDiv.onclick = (e) => {
+                if (!e.target.classList.contains('tab-close')) {
+                    switchTab(newTabId);
+                }
+            };
+
+            tabDiv.innerHTML = `
+                <span class="tab-icon">🏠</span>
+                <span class="tab-title">Home</span>
+                <button class="tab-close" onclick="closeTab(event, ${newTabId})">×</button>
+            `;
+
+            tabsContainer.insertBefore(tabDiv, newTabBtn);
+            switchTab(newTabId);
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
+            if (tabElement) {
+                tabElement.classList.add('active');
+            }
+
+            currentTabId = tabId;
+            const tab = tabs[tabId];
+
+            document.getElementById('urlInput').value = tab.url || '';
+
+            if (!tab.url) {
+                showHomePage();
+            } else {
+                loadUrl(tab.url, false);
+            }
+        }
+
+        function closeTab(event, tabId) {
+            event.stopPropagation();
+
+            const tabElements = document.querySelectorAll('.tab');
+            if (tabElements.length <= 1) {
+                return;
+            }
+
+            const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
+            if (tabElement) {
+                tabElement.remove();
+            }
+
+            delete tabs[tabId];
+
+            if (currentTabId === tabId) {
+                const remainingTabs = Object.keys(tabs);
+                if (remainingTabs.length > 0) {
+                    switchTab(parseInt(remainingTabs[0]));
+                }
+            }
+        }
+
+        function updateTabTitle(tabId, url) {
+            const tab = tabs[tabId];
+            const domain = new URL(url).hostname;
+            tab.title = domain;
+
+            const tabElement = document.querySelector(`[data-tab-id="${tabId}"] .tab-title`);
+            if (tabElement) {
+                tabElement.textContent = domain;
+            }
+        }
+
+        // Sidebar Functions
+        function toggleBookmarks() {
+            showSidebar('Bookmarks', renderBookmarks());
+        }
+
+        function toggleSettings() {
+            showSidebar('Settings', renderSettings());
+        }
+
+        function showSidebar(title, content) {
+            document.getElementById('sidebarTitle').textContent = title;
+            document.getElementById('sidebarContent').innerHTML = content;
+            document.getElementById('sidebar').classList.add('active');
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('active');
+        }
+
+        function renderBookmarks() {
+            if (bookmarks.length === 0) {
+                return '<p style="color: rgba(255, 255, 255, 0.5); text-align: center; padding: 20px; font-size: 14px;">No bookmarks yet</p>';
+            }
+
+            let html = '<div class="sidebar-section">';
+            bookmarks.forEach((bookmark, index) => {
+                html += `
+                    <div class="sidebar-item" onclick="loadUrl('${bookmark.url}'); closeSidebar();">
+                        <span style="font-size: 16px;">🔖</span>
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${bookmark.title}</div>
+                        </div>
+                        <button onclick="event.stopPropagation(); removeBookmark(${index})" style="background: rgba(255, 107, 107, 0.3); border: none; padding: 4px 8px; border-radius: 4px; color: white; cursor: pointer; font-size: 12px;">×</button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+
+            html += `<button onclick="addCurrentPageToBookmarks()" class="save-btn">+ Add Current Page</button>`;
+
+            return html;
+        }
+
+        function renderSettings() {
+            return `
+                <div class="settings-panel">
+                    <div class="setting-group">
+                        <label class="setting-label">Google API Key</label>
+                        <input type="text" class="setting-input" id="apiKeyInput" value="${settings.apiKey}" placeholder="Enter API key">
+                    </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">Search Engine ID</label>
+                        <input type="text" class="setting-input" id="searchEngineIdInput" value="${settings.searchEngineId}" placeholder="Enter Search Engine ID">
+                    </div>
+
+                    <button onclick="saveSettings()" class="save-btn">Save Settings</button>
+
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid rgba(255, 230, 109, 0.2);">
+                        <h3 style="color: #FFE66D; margin-bottom: 10px; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">About Reitz</h3>
+                        <p style="color: rgba(255, 255, 255, 0.7); font-size: 13px; line-height: 1.6;">
+                            A futuristic, sleek browser frontend with dynamic animations and modern design. Built with Chrome-like mobile experience in mind.
+                        </p>
+                        <p style="color: rgba(255, 255, 255, 0.5); font-size: 12px; margin-top: 10px;">v3.0.0 - Mobile First</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Settings Functions
+        function loadSettings() {
+            // Settings already loaded
+        }
+
+        function saveSettings() {
+            settings.apiKey = document.getElementById('apiKeyInput').value;
+            settings.searchEngineId = document.getElementById('searchEngineIdInput').value;
+
+            localStorage.setItem('reitz_settings', JSON.stringify(settings));
+            
+            updateStatus('Settings saved');
+            setTimeout(() => {
+                closeSidebar();
+            }, 1000);
+        }
+
+        // Bookmark Functions
+        function addCurrentPageToBookmarks() {
+            const tab = tabs[currentTabId];
+            if (!tab.url) {
+                alert('No page to bookmark');
+                return;
+            }
+
+            const bookmark = {
+                title: tab.title,
+                url: tab.url,
+                timestamp: Date.now()
+            };
+
+            bookmarks.push(bookmark);
+            localStorage.setItem('reitz_bookmarks', JSON.stringify(bookmarks));
+            
+            updateStatus('Bookmark added');
+            showSidebar('Bookmarks', renderBookmarks());
+        }
+
+        function removeBookmark(index) {
+            bookmarks.splice(index, 1);
+            localStorage.setItem('reitz_bookmarks', JSON.stringify(bookmarks));
+            showSidebar('Bookmarks', renderBookmarks());
+        }
+
+        // History Functions
+        function addToGlobalHistory(url) {
+            const historyItem = {
+                title: new URL(url).hostname,
+                url: url,
+                timestamp: Date.now()
+            };
+
+            history.push(historyItem);
+            
+            if (history.length > 100) {
+                history = history.slice(-100);
+            }
+
+            localStorage.setItem('reitz_history', JSON.stringify(history));
+        }
+
+        // UI Helper Functions
+        function showHomePage() {
+            document.getElementById('homePage').classList.remove('hidden');
+            document.getElementById('browserFrame').classList.add('hidden');
+            document.getElementById('searchResults').classList.add('hidden');
+            document.getElementById('urlInput').value = '';
+            updateStatus('Ready');
+        }
+
+        function showLoading() {
+            const loadingBar = document.getElementById('loadingBar');
+            loadingBar.classList.add('active');
+        }
+
+        function hideLoading() {
+            const loadingBar = document.getElementById('loadingBar');
+            loadingBar.classList.remove('active');
+        }
+
+        function updateStatus(message) {
+            document.getElementById('statusText').textContent = message;
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+                e.preventDefault();
+                createNewTab();
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'w') {
+                e.preventDefault();
+                const tabElements = document.querySelectorAll('.tab');
+                if (tabElements.length > 1) {
+                    closeTab(e, currentTabId);
+                }
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                e.preventDefault();
+                document.getElementById('urlInput').focus();
+                document.getElementById('urlInput').select();
+            }
+
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                addCurrentPageToBookmarks();
+            }
+        });
+
+        // Connection Status
+        window.addEventListener('online', () => {
+            document.getElementById('connectionStatus').textContent = '🌐 Online';
+        });
+
+        window.addEventListener('offline', () => {
+            document.getElementById('connectionStatus').textContent = '📡 Offline';
+        });
+    </script>
+</body>
+</html>
