@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Reitz Browser</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+:root {
+  --y: #ffe08a;
+  --r: #ff9a8a;
+  --bg: linear-gradient(135deg, var(--y), var(--r));
+  --glass: rgba(255,255,255,0.14);
+  --blur: blur(18px);
+}
+
+* {
+  box-sizing: border-box;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  background: radial-gradient(circle at top, #fff3, transparent),
+              linear-gradient(135deg,#fff1,#0000),
+              var(--bg);
+  overflow: hidden;
+}
+
+#browser {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: var(--blur);
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--glass);
+  box-shadow: 0 8px 30px #0003;
+}
+
+button {
+  border: none;
+  background: linear-gradient(135deg,#fff6,#fff2);
+  padding: 8px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform .25s, box-shadow .25s;
+}
+
+button:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 10px 25px #0003;
+}
+
+#address {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: 18px;
+  border: none;
+  outline: none;
+  background: rgba(255,255,255,0.8);
+  font-size: 15px;
+}
+
+#tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  background: var(--glass);
+  overflow-x: auto;
+}
+
+.tab {
+  padding: 8px 14px;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.5);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .25s;
+}
+
+.tab.active {
+  background: white;
+  box-shadow: 0 8px 20px #0003;
+}
+
+iframe {
+  flex: 1;
+  border: none;
+  background: white;
+}
+
+#newtab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 25px;
+  height: 100%;
+  font-size: 22px;
+  color: #333;
+}
+
+.logo {
+  font-size: 48px;
+  font-weight: 800;
+  background: var(--bg);
+  -webkit-background-clip: text;
+  color: transparent;
+}
+</style>
+</head>
+
+<body>
+<div id="browser">
+
+<header>
+  <button onclick="newTab()">＋</button>
+  <input id="address" placeholder="Search or enter URL…" onkeydown="if(event.key==='Enter')navigate()">
+  <button onclick="navigate()">Go</button>
+</header>
+
+<div id="tabs"></div>
+
+<iframe id="view"></iframe>
+
+</div>
+
+<script>
+let tabs = [];
+let current = null;
+
+function newTab(url = '') {
+  const id = Date.now();
+  tabs.push({id, url});
+  current = id;
+  renderTabs();
+  open(url);
+}
+
+function renderTabs() {
+  const t = document.getElementById('tabs');
+  t.innerHTML = '';
+  tabs.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id === current ? ' active' : '');
+    el.textContent = tab.url ? tab.url.slice(0,20) : 'New Tab';
+    el.onclick = () => {
+      current = tab.id;
+      open(tab.url);
+      renderTabs();
+    };
+    t.appendChild(el);
+  });
+}
+
+function open(url) {
+  const frame = document.getElementById('view');
+  const addr = document.getElementById('address');
+
+  if (!url) {
+    frame.srcdoc = `
+      <div id="newtab">
+        <div class="logo">Reitz</div>
+        <div>Fast. Clean. Future.</div>
+      </div>
+    `;
+    addr.value = '';
+    return;
+  }
+
+  addr.value = url;
+  frame.src = url;
+}
+
+function navigate() {
+  let val = address.value.trim();
+  if (!val) return;
+
+  if (!val.includes('.') || val.includes(' ')) {
+    val = 'https://www.google.com/search?q=' + encodeURIComponent(val);
+  } else if (!val.startsWith('http')) {
+    val = 'https://' + val;
+  }
+
+  const tab = tabs.find(t => t.id === current);
+  tab.url = val;
+  open(val);
+  renderTabs();
+}
+
+newTab();
+</script>
+</body>
+</html>
